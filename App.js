@@ -3,7 +3,7 @@
  * https://github.com/facebook/react-native
  * @flow
  */
-
+'use strict'
 import React, { Component } from 'react';
 import {
   Platform,
@@ -13,14 +13,17 @@ import {
 } from 'react-native';
 import MapView from 'react-native-maps';
 import Polyline from '@mapbox/polyline';
+import GeoFencing from 'react-native-geo-fencing';
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' +
-  'Cmd+D or shake for dev menu',
+    'Cmd+D or shake for dev menu',
   android: 'Double tap R on your keyboard to reload,\n' +
-  'Shake or press menu button for dev menu',
+    'Shake or press menu button for dev menu',
 });
 
+
+let key = 0;
 export default class App extends Component<{}> {
   constructor(props) {
     super(props)
@@ -29,7 +32,8 @@ export default class App extends Component<{}> {
       lastLat: null,
       lastLong: null,
       coords: [],
-      coordsDraw: [],
+      polylines: [],
+      endpoint: null,
     }
   }
 
@@ -43,8 +47,22 @@ export default class App extends Component<{}> {
         latitudeDelta: 0.00922 * 1.5,
         longitudeDelta: 0.00421 * 1.5
       }
-      this.onRegionChange(region, region.latitude, region.longitude);
-      this.getDirections(region.latitude + ',' + region.longitude, "Quận 8");
+      // let resp =  fetch(`https://roads.googleapis.com/v1/nearestRoads?points=${region.latitude},${region.longitude}&key=AIzaSyDyieGBtfNQRksI67lRIMCO2wsJj__kK3Y`);
+      // let respJson =  resp.json();
+      // region = rerespJson.snappedPoints.location;
+      // console.log(region);
+      this.setState({ mapRegion: region });
+      // this.onRegionChange(region, region.latitude, region.longitude);
+      this.getDirections(region.latitude + ',' + region.longitude, "Bến xe Quận 8");
+
+      let point = {
+        lat: 10.734101,
+        lng: 106.656181,
+      }
+
+      // GeoFencing.containsLocation(point, this.state.coordsDraw)
+      //   .then(() => alert('point is within polygon'))
+      //   .catch(() => alert('point is NOT within polygon'));
 
     });
 
@@ -56,7 +74,7 @@ export default class App extends Component<{}> {
 
     // if (this.state.mapRegion != null) {
     // this.getDirections(this.state.lastLat + ',' + this.state.lastLong, "Quận 8");
-    this.getDirections("Cần Giuộc", "Quận 8");
+    // this.getDirections("Cần Giuộc", "Quận 8");
     // }
 
   }
@@ -78,7 +96,7 @@ export default class App extends Component<{}> {
 
 
   onMapPress(e) {
-    console.log(e.nativeEvent.coordinate.longitude);
+    // console.log(e.nativeEvent.coordinate.longitude);
     let region = {
       latitude: e.nativeEvent.coordinate.latitude,
       longitude: e.nativeEvent.coordinate.longitude,
@@ -90,18 +108,82 @@ export default class App extends Component<{}> {
 
   async getDirections(startLoc, destinationLoc) {
     try {
-      let resp = await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${startLoc}&destination=${destinationLoc}`)
+      let resp = await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${startLoc}&destination=${destinationLoc}&alternatives=true`);
       let respJson = await resp.json();
-      let points = Polyline.decode(respJson.routes[0].overview_polyline.points);
-      let coords = points.map((point, index) => {
-        return {
-          latitude: point[0],
-          longitude: point[1]
-        }
-      })
-      this.setState({ coordsDraw: coords })
-      return coords
+      // const count = Object.keys(respJson).length;
+      // console.log(respJson);
+      var coordstemp = [];
 
+      // for (let i = 0; i < count; i++) {
+      //   // console.log(i);
+      //   let points = Polyline.decode(respJson.routes[i].overview_polyline.points);
+      //   // console.log(points);
+      //   let coordinates = points.map((point, index) => {
+      //     return {
+      //       latitude: point[0],
+      //       longitude: point[1]
+      //     }
+      //   })
+      //   console.log(coordinates);
+      //   // this.setState({ key: 1 });
+      //   coordstemp.push(coordinates);
+      // }
+
+
+      var points = (respJson.routes.map((value) => (
+        (value.overview_polyline.points)
+      )));
+      var pointsdecode = points.map((value) => Polyline.decode(value));
+      // console.log(pointsdecode);
+      const count = Object.keys(pointsdecode).length;
+      for (let i = 0; i < count; i++) {
+        let coordinates = pointsdecode[i].map((point) => {
+          return {
+            latitude: point[0],
+            longitude: point[1]
+          }
+        });
+
+        
+        if (i == 0) {
+          console.log(coordinates);
+
+          let key = Object.keys(coordinates);
+          let lastpoint = coordinates[key.length - 1];
+          this.setState({ endpoint: lastpoint });
+
+          console.log(this.state.endpoint);
+
+          this.setState({ key: key++ });
+          let polyLine = (
+            <MapView.Polyline
+              key={this.state.key}
+              coordinates={coordinates}
+              strokeWidth={5}
+              strokeColor="#00B3FD" />
+          );
+
+
+
+
+          // console.log(coordinates);
+          coordstemp.push(polyLine);
+        }
+        else {
+          this.setState({ key: key++ });
+          let polyLine = (
+            <MapView.Polyline
+              key={this.state.key}
+              coordinates={coordinates}
+              strokeWidth={5}
+              strokeColor="#AFAFAF" />
+          );
+          // console.log(coordinates);
+          coordstemp.push(polyLine);
+        }
+      }
+      this.setState({ polylines: coordstemp.reverse() })
+      // console.log(this.state.polylines);
     } catch (error) {
       alert(error)
       return error
@@ -119,21 +201,13 @@ export default class App extends Component<{}> {
           onRegionChange={this.onRegionChange.bind(this)}
           onPress={this.onMapPress.bind(this)}
           region={this.state.mapRegion}>
-          <MapView.Polyline
-            coordinates={this.state.coordsDraw}
-            strokeWidth={8}
-            strokeColor="red" />
+
+          {this.state.polylines}
+
           <MapView.Marker
-            coordinate={{
-              latitude: (this.state.lastLat + 0.00050) || -36.82339,
-              longitude: (this.state.lastLong + 0.00050) || -73.03569,
-            }}>
-            <View>
-              <Text style={{ color: '#000' }}>
-                {this.state.lastLong} / {this.state.lastLat}
-              </Text>
-            </View>
-          </MapView.Marker>
+            coordinate = {this.state.endpoint}
+          />
+
         </MapView >
       </View >
     );
