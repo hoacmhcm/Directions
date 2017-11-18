@@ -4,16 +4,21 @@
  * @flow
  */
 'use strict'
-import React, { Component } from 'react';
+import React, { Component, TouchableOpacity, Image } from 'react';
 import {
   Platform,
   StyleSheet,
   Text,
-  View
+  View , Dimensions,
 } from 'react-native';
 import MapView from 'react-native-maps';
 import Polyline from '@mapbox/polyline';
 import GeoFencing from 'react-native-geo-fencing';
+import SlideMenu from 'react-native-side-menu';
+
+import Menu from './Menu.js';
+const image = require('./assets/menu.png');
+// import Dimensions from 'Dimensions';
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' +
@@ -27,6 +32,9 @@ let key = 0;
 export default class App extends Component<{}> {
   constructor(props) {
     super(props)
+
+    // this.toggle = this.toggle.bind(this);
+
     this.state = {
       mapRegion: null,
       lastLat: null,
@@ -34,6 +42,9 @@ export default class App extends Component<{}> {
       coords: [],
       polylines: [],
       endpoint: null,
+      isOpen: false,
+      selectedItem: 'About',
+      size : (700 / Dimensions.get('window').width) * Dimensions.get('window').width,
     }
   }
 
@@ -80,7 +91,7 @@ export default class App extends Component<{}> {
   }
 
 
-  onRegionChange(region, lastLat, lastLong) {
+  onRegionChange = (region, lastLat, lastLong) => {
     this.setState({
       mapRegion: region,
       // If there are no new values set use the the current ones
@@ -95,7 +106,7 @@ export default class App extends Component<{}> {
   }
 
 
-  onMapPress(e) {
+  onMapPress = (e) => {
     // console.log(e.nativeEvent.coordinate.longitude);
     let region = {
       latitude: e.nativeEvent.coordinate.latitude,
@@ -144,14 +155,15 @@ export default class App extends Component<{}> {
           }
         });
 
-        
         if (i == 0) {
           console.log(coordinates);
 
           let key = Object.keys(coordinates);
           let lastpoint = coordinates[key.length - 1];
-          this.setState({ endpoint: lastpoint });
-
+          let lastPointMarker = (
+            <MapView.Marker
+              coordinate={lastpoint} />);
+          this.setState({ endpoint: lastPointMarker });
           console.log(this.state.endpoint);
 
           this.setState({ key: key++ });
@@ -162,8 +174,6 @@ export default class App extends Component<{}> {
               strokeWidth={5}
               strokeColor="#00B3FD" />
           );
-
-
 
 
           // console.log(coordinates);
@@ -190,26 +200,52 @@ export default class App extends Component<{}> {
     }
   }
 
+  // toggle() {
+  //   this.setState({
+  //     isOpen: !this.state.isOpen,
+  //   });
+  // }
+
+  updateMenuState(isOpen) {
+    this.setState({ isOpen });
+  }
+
+  onMenuItemSelected = item =>
+    this.setState({
+      isOpen: false,
+      selectedItem: item,
+    });
+
   render() {
+    console.log(this.width);
+    const menu = <Menu onItemSelected={this.onMenuItemSelected}
+      // isOpen={this.state.isOpen}
+      // onChange={isOpen => this.updateMenuState(isOpen)} />;
+      openMenuOffset={this.state.size} />
+    // console.log(this.state.isOpen);
+    if(this.state.selectedItem === 'Contacts')
+    {
+      // alert(2222);
+    }
     return (
-      <View style={{ flex: 1 }}>
-        <MapView
-          style={styles.map}
-          showsUserLocation={true}
-          followUserLocation={true}
-          showsMyLocationButton={true}
-          onRegionChange={this.onRegionChange.bind(this)}
-          onPress={this.onMapPress.bind(this)}
-          region={this.state.mapRegion}>
+      <SlideMenu menu={menu}>
+        <View style={{ flex: 1 }}>
+          <MapView
+            style={styles.map}
+            showsUserLocation={true}
+            followUserLocation={true}
+            showsMyLocationButton={true}
+            onRegionChange={this.onRegionChange}
+            onPress={this.onMapPress}
+            region={this.state.mapRegion}>
 
-          {this.state.polylines}
+            {this.state.polylines}
 
-          <MapView.Marker
-            coordinate = {this.state.endpoint}
-          />
+            {this.state.endpoint}
+          </MapView >
+        </View >
 
-        </MapView >
-      </View >
+      </SlideMenu>
     );
   }
 }
@@ -218,4 +254,9 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
+  button: {
+    position: 'absolute',
+    top: 20,
+    padding: 10,
+  }
 });
