@@ -1,9 +1,3 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
-'use strict'
 import React, { Component, TouchableOpacity, Image } from 'react';
 import {
   Platform,
@@ -13,10 +7,10 @@ import {
 } from 'react-native';
 import MapView from 'react-native-maps';
 import Polyline from '@mapbox/polyline';
-import GeoFencing from 'react-native-geo-fencing';
+// import GeoFencing from 'react-native-geo-fencing';
 import SlideMenu from 'react-native-side-menu';
 
-import Menu from './Menu.js';
+import Menu from './src/Menu.js';
 const image = require('./assets/menu.png');
 // import Dimensions from 'Dimensions';
 
