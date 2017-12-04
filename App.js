@@ -3,7 +3,7 @@ import {
   Platform,
   StyleSheet,
   Text,
-  View , Dimensions,
+  View, Dimensions,
 } from 'react-native';
 import MapView from 'react-native-maps';
 import Polyline from '@mapbox/polyline';
@@ -14,6 +14,8 @@ import Menu from './src/Menu.js';
 const image = require('./assets/menu.png');
 // import Dimensions from 'Dimensions';
 
+import { connect } from 'react-redux';
+
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' +
     'Cmd+D or shake for dev menu',
@@ -23,7 +25,7 @@ const instructions = Platform.select({
 
 
 let key = 0;
-export default class App extends Component<{}> {
+class App extends Component<{}> {
   constructor(props) {
     super(props)
 
@@ -38,7 +40,7 @@ export default class App extends Component<{}> {
       endpoint: null,
       isOpen: false,
       selectedItem: 'About',
-      size : (700 / Dimensions.get('window').width) * Dimensions.get('window').width,
+      size: (700 / Dimensions.get('window').width) * Dimensions.get('window').width,
     }
   }
 
@@ -217,8 +219,7 @@ export default class App extends Component<{}> {
       // onChange={isOpen => this.updateMenuState(isOpen)} />;
       openMenuOffset={this.state.size} />
     // console.log(this.state.isOpen);
-    if(this.state.selectedItem === 'Contacts')
-    {
+    if (this.state.selectedItem === 'Contacts') {
       // alert(2222);
     }
     return (
@@ -236,6 +237,15 @@ export default class App extends Component<{}> {
             {this.state.polylines}
 
             {this.state.endpoint}
+
+            {this.props.markers.map((marker) => (
+              <MapView.Marker
+                key={marker.id}
+                coordinate={marker.latlng}
+                image={marker.image}
+                title={marker.title}
+                description={marker.description} />))}
+                
           </MapView >
         </View >
 
@@ -243,6 +253,14 @@ export default class App extends Component<{}> {
     );
   }
 }
+
+function MapStateToProps(state) {
+  return {
+    markers: state.markers,
+    textDirection: state.textDirection
+  };
+}
+export default connect(MapStateToProps)(App);
 
 const styles = StyleSheet.create({
   map: {
